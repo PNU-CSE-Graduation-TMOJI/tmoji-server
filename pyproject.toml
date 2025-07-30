@@ -1,0 +1,20 @@
+[project]
+name = "tmoji_server"
+version = "0.1.0"
+description = "tmoji backend server"
+authors = [
+    {name = "bluelemon61",email = "67902252+bluelemon61@users.noreply.github.com"}
+]
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "fastapi (>=0.116.1,<0.117.0)",
+    "uvicorn (>=0.35.0,<0.36.0)",
+    "psycopg[binary] (>=3.2.9,<4.0.0)",
+    "python-dotenv (>=1.1.1,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
