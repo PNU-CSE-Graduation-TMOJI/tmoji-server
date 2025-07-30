@@ -1,4 +1,9 @@
+# 파이썬 가상환경
 .venv
+
+# 환경변수
 .env
+
+# pycache
 *.pyc
 __pycache__/
