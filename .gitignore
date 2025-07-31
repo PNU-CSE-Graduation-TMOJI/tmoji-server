@@ -8,5 +8,8 @@
 *.pyc
 __pycache__/
 
+# DS_Store
+DS_Store/
+
 # 이미지
 photo
