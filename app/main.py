@@ -5,6 +5,8 @@ from app.api.v1.routers import api_router
 from app.db import Base, engine, test_db_connection
 
 from app.models.image import Image # type: ignore
+from app.models.service import Service # type: ignore
+from app.models.area import Area # type: ignore
 
 load_dotenv()
 
