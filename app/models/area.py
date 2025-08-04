@@ -20,5 +20,6 @@ class Area(Base):
   translated_text: Mapped[str] = mapped_column(String, nullable=True)
   service_id: Mapped[int] = mapped_column(ForeignKey("services.id"), nullable=False)
   created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+  updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
   service: Mapped["Service"] = relationship("Service", uselist=False)

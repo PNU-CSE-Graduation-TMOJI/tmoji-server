@@ -14,7 +14,8 @@ dependencies = [
     "python-dotenv (>=1.1.1,<2.0.0)",
     "pillow (>=11.3.0,<12.0.0)",
     "python-multipart (>=0.0.20,<0.0.21)",
-    "sqlalchemy (>=2.0.42,<3.0.0)"
+    "sqlalchemy (>=2.0.42,<3.0.0)",
+    "alembic (>=1.16.4,<2.0.0)"
 ]
 
 

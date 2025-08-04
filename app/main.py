@@ -1,23 +1,13 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from dotenv import load_dotenv
 from app.api.v1.routers import api_router
-from app.db import Base, engine, test_db_connection
 
-from app.models.image import Image # type: ignore
-from app.models.service import Service # type: ignore
-from app.models.area import Area # type: ignore
+from app.load_env import load_environment
 
-load_dotenv()
+load_environment()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    test_db_connection()
-
-    # 앱 시작 시
-    print("⛏️ Creating tables if not exist...")
-    Base.metadata.create_all(bind=engine)
-    
     # FIXME torch 모델 로딩 여기에
 
     yield  # 여기서 FastAPI 앱이 실행됨

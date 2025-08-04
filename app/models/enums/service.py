@@ -1,5 +1,12 @@
 from enum import Enum
 
+class ServiceMode(str, Enum):
+  MACHINE = "MACHINE"
+  """기계 번역 모드"""
+
+  AI = "AI"
+  """AI 번역 모드"""
+
 class ServiceStep(str, Enum):
   BOUNDING = "BOUNDING"
   """바운딩 박스 (영역) 생성 단계"""
@@ -28,5 +35,10 @@ class ServiceStatus(str, Enum):
 
 class Language(str, Enum):
   EN = "EN"
+  """ENGLISH, 영어"""
+
   KO = "KO"
+  """KOREAN, 한국어"""
+
   JP = "JP"
+  """JAPANESE, 일본어"""

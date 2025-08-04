@@ -1,11 +1,11 @@
 import os
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from urllib.parse import quote_plus
-import psycopg
-from dotenv import load_dotenv
 
-load_dotenv()
+from app.load_env import load_environment
+
+load_environment()
 
 def get_env_var(name: str) -> str:
     value = os.getenv(name)
@@ -24,32 +24,19 @@ DATABASE_URL = (
     f'@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}'
 )
 
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_async_engine(DATABASE_URL, echo=True)
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = async_sessionmaker(
+    expire_on_commit=False, 
+    autocommit=False, 
+    autoflush=False, 
+    bind=engine,
+    class_=AsyncSession,
+)
 
 class Base(DeclarativeBase):
     pass
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-def get_connection() -> psycopg.Connection:
-    try:
-        conn = psycopg.connect(DATABASE_URL, connect_timeout=5)
-        return conn
-    except psycopg.OperationalError as e:
-        print(f"Database connection failed: {e}")
-        raise
-
-def test_db_connection():
-    try:
-        with engine.connect() as conn:
-            result = conn.execute(text("SELECT 1"))
-            print("✅ DB 연결 성공:", result.scalar())
-    except Exception as e:
-        print("❌ DB 연결 실패:", e)
+async def get_db():
+    async with SessionLocal() as session:
+        yield session
