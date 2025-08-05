@@ -6,6 +6,7 @@ from PIL import Image as PILImage
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.responses.step_1 import start_service_response, upload_image_response
+from app.constants.image_path import UPLOAD_DIR
 from app.crud.image import create_image, read_image_by_filename
 from app.crud.service import create_service
 from app.db import get_db
@@ -25,7 +26,6 @@ router = APIRouter()
   status_code=201
 )
 async def upload_image(file: UploadFile, db: AsyncSession = Depends(get_db)):
-  UPLOAD_DIR = './photo/origin'
   os.makedirs(UPLOAD_DIR, exist_ok=True)
 
   try:

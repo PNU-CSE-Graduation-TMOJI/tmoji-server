@@ -6,20 +6,15 @@ from app.schemas.image import ImageCreate, ImageRead
 
 async def create_image(db: AsyncSession, image_in: ImageCreate) -> ImageRead:
   try:
-    print('add')
     db_image = Image(
       filename = image_in.filename,
     )
     db.add(db_image)
 
-    print('flush')
     await db.flush()
-    print('refresh')
     await db.refresh(db_image)
-    print('commit')
     await db.commit()
 
-    print('return')
     return ImageRead.model_validate(db_image)
   except Exception:
     await db.rollback()
