@@ -45,6 +45,29 @@ services:
     depends_on:
       - db
 
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  worker:
+    build: .
+    container_name: celery_worker
+    restart: always
+    command: celery -A app.celery_app.celery worker -l info --concurrency=2
+    env_file:
+      - .env.docker
+    depends_on:
+      - redis
+      - db
+    volumes:
+      - .:/code
+      - type: volume
+        source: dummy_venv
+        target: /code/.venv
+
 volumes:
   pgdata:
   dummy_venv:

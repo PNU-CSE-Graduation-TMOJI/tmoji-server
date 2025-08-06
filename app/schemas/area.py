@@ -17,10 +17,8 @@ class AreaRead(AreaBase):
   created_at: datetime
   service_id: int
 
-  class Config:
-    orm_mode = True
-
 class AreaUpdate(CommonModel):
+  id: int
   origin_text: str | None = None
   translated_text: str | None = None
 

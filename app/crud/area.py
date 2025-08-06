@@ -1,8 +1,9 @@
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.tx import tx
 from app.models.area import Area
-from app.schemas.area import AreaCreate, AreaRead
+from app.schemas.area import AreaCreate, AreaRead, AreaUpdate
 
 async def create_areas_bulk(db: AsyncSession, areas_in: List[AreaCreate]) -> List[AreaRead]:
   db_areas = [Area(
@@ -20,3 +21,16 @@ async def create_areas_bulk(db: AsyncSession, areas_in: List[AreaCreate]) -> Lis
     await db.refresh(area)
 
   return [AreaRead.model_validate(area) for area in db_areas]
+
+async def update_area(db: AsyncSession, area_in: AreaUpdate) -> AreaRead:
+  async with tx(db):
+      area = await db.get(Area, area_in.id)
+      if not area:
+        raise Exception('Area no exist')
+      
+      if area_in.origin_text is not None:
+        area.origin_text = area_in.origin_text
+      if area_in.translated_text is not None:
+        area.translated_text = area_in.translated_text
+  
+  return AreaRead.model_validate(area)

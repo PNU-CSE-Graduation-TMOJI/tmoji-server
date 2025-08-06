@@ -22,16 +22,10 @@ class ServiceRead(ServiceBase):
   target_language: Language | None = None
   created_at: datetime
 
-  class Config:
-    orm_mode = True
-
 class ServiceUpdate(ServiceBase):
   step: ServiceStep
   status: ServiceStatus
   target_language: Language | None = None
-
-  class Config:
-    orm_mode = True
 
 
 # Request Body

@@ -14,6 +14,7 @@ from app.schemas.area import AreaCreate, PostAreaRequest
 from app.schemas.image import ImageCreate, ImageRead
 from app.schemas.service import ServiceUpdate
 from app.utils.enum_to_html import enum_to_html
+from app.tasks.ocr import AreaPayload, extract_areas
 
 router = APIRouter()
 
@@ -26,9 +27,7 @@ router = APIRouter()
       {enum_to_html(Language)}
       {enum_to_html(ServiceMode)}
     """,
-  # response_model=ServiceRead,
-  # responses=start_service_response(),
-  status_code=201
+  status_code=status.HTTP_202_ACCEPTED
 )
 async def make_area(request: PostAreaRequest, db: AsyncSession = Depends(get_db)):
   # 0. 유효성 검사
@@ -72,7 +71,6 @@ async def make_area(request: PostAreaRequest, db: AsyncSession = Depends(get_db)
   ) for i, area in enumerate(request.areas)]
 
   areas = await create_areas_bulk(db, areas_in)
-  print(areas)
 
   # 4. 서비스 step 전환
   service_in = ServiceUpdate(
@@ -82,6 +80,16 @@ async def make_area(request: PostAreaRequest, db: AsyncSession = Depends(get_db)
   service = await update_service(db=db, id=service.id, service_in=service_in)
 
   # 5. OCR 진행
+  payloads: List[AreaPayload] = []
+  for i, area in enumerate(areas):
+    area_pay_load = AreaPayload(
+      area_id=area.id,
+      image_path=os.path.join(CROP_DIR, cropped_images[i].filename),
+      lang=service.origin_language.value,
+    )
+    payloads.append(area_pay_load)
+
+  extract_areas.delay(payloads, service.id) # pyright: ignore[reportFunctionMemberAccess]
 
   return service
   
