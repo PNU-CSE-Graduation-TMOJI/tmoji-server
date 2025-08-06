@@ -76,7 +76,7 @@ async def make_areas(request: PostAreaRequest, db: AsyncSession = Depends(get_db
     step=ServiceStep.DETECTING,
     status=ServiceStatus.PROCESSING,
   )
-  service = await update_service(db=db, id=service.id, service_in=service_in)
+  updated_service = await update_service(db=db, id=service.id, service_in=service_in)
 
   # 5. OCR 진행
   payloads: List[AreaPayload] = []
@@ -90,7 +90,7 @@ async def make_areas(request: PostAreaRequest, db: AsyncSession = Depends(get_db
 
   extract_areas.delay(payloads, service.id) # pyright: ignore[reportFunctionMemberAccess]
 
-  return service
+  return updated_service
   
 @router.get(
   "/service/{service_id}/status", 
