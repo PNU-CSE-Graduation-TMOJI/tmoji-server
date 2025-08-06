@@ -4,16 +4,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from PIL import Image as PILImage
 
+from app.api.v1.responses.step_2 import get_service_status_response, make_area_response
 from app.constants.image_path import CROP_DIR, UPLOAD_DIR
-from app.crud.area import create_areas_bulk
+from app.crud.area import create_areas_bulk, read_areas_bulk_by_service_id
 from app.crud.image import create_image, read_image_by_id
 from app.crud.service import read_service_by_id, update_service
 from app.db import get_db
-from app.models.enums.service import Language, ServiceMode, ServiceStep, ServiceStatus
-from app.schemas.area import AreaCreate, PostAreaRequest
+from app.models.enums.service import ServiceStep, ServiceStatus
+from app.schemas.area import AreaCreate, AreaReadAfterDetecting, PostAreaRequest
 from app.schemas.image import ImageCreate, ImageRead
-from app.schemas.service import ServiceUpdate
-from app.utils.enum_to_html import enum_to_html
+from app.schemas.service import GetServiceStatusResponse, ServiceUpdate
 from app.tasks.ocr import AreaPayload, extract_areas
 
 router = APIRouter()
@@ -23,11 +23,10 @@ router = APIRouter()
   summary="텍스트 영역 지정", 
   description=
     f"""
-      번역 서비스 선택 및 언어를 선택하여 서비스를 생성(시작)합니다. <br>
-      {enum_to_html(Language)}
-      {enum_to_html(ServiceMode)}
+      ID와 일치하는 서비스에 바운딩 박스(영역)을 생성합니다.
     """,
-  status_code=status.HTTP_202_ACCEPTED
+  status_code=status.HTTP_202_ACCEPTED,
+  responses=make_area_response()
 )
 async def make_area(request: PostAreaRequest, db: AsyncSession = Depends(get_db)):
   # 0. 유효성 검사
@@ -39,7 +38,7 @@ async def make_area(request: PostAreaRequest, db: AsyncSession = Depends(get_db)
   if not service:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="존재하지 않는 서비스입니다.")
   if service.step != ServiceStep.BOUNDING:
-    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{service.step} 단계의 서비스는 영역을 생성할 수 없습니다.")
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"이미 영역을 생성한 서비스입니다.")
   
   # 2. 잘라낸 이미지 저장
   originImage = await read_image_by_id(db, service.origin_image_id)
@@ -93,3 +92,57 @@ async def make_area(request: PostAreaRequest, db: AsyncSession = Depends(get_db)
 
   return service
   
+@router.get(
+  "/service/{service_id}/status", 
+  summary="OCR(DETECTING) 완료 여부 확인 및 결과 반환",
+  description=
+    f"""
+      ID와 일치하는 서비스의 OCR 완료 여부 및 영역 정보와 감지된 텍스트를 반환합니다.<br>
+      <h3>Response 중 Optional 항목</h3>
+      <ui>
+        <li><strong>areas</strong>: PENDING(완료 후 대기) 상태가 아니라면 null</li>
+      </ui>
+    """,
+  status_code=status.HTTP_200_OK,
+  response_model=GetServiceStatusResponse,
+  responses=get_service_status_response()
+)
+async def get_service_status(service_id: str, db: AsyncSession = Depends(get_db)):
+  service_id_num = int(service_id)
+
+  # 1. 서비스 조회 & 유효성 검사
+  service = await read_service_by_id(db, service_id_num)
+  if not service:
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="존재하지 않는 서비스입니다.")
+  if service.step != ServiceStep.DETECTING:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"DETECTING(OCR) 단계가 아닌 서비스입니다.")
+
+  # 2. 서비스 완료 여부 검사 및 반환
+  if service.status == ServiceStatus.PENDING: # OCR이 완료되고 다음 입력을 기다리는 상태
+    areas = await read_areas_bulk_by_service_id(db, service_id_num)
+    areas_after_detecting = [
+      AreaReadAfterDetecting(
+        id=area.id,
+        created_at=area.created_at,
+        service_id=area.service_id,
+        x1=area.x1,
+        x2=area.x2,
+        y1=area.y1,
+        y2=area.y2,
+        origin_text=area.origin_text or "error",
+      ) for area in areas
+    ]
+
+    return GetServiceStatusResponse(
+      isCompleted=True,
+      id=service_id_num,
+      status=service.status,
+      areas=areas_after_detecting
+    )
+  else:
+    return GetServiceStatusResponse(
+      isCompleted=True,
+      id=service_id_num,
+      status=service.status,
+      areas=None
+    )

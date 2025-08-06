@@ -16,6 +16,15 @@ class AreaRead(AreaBase):
   id: int
   created_at: datetime
   service_id: int
+  origin_text: str | None = None
+  translated_text: str | None = None
+
+class AreaReadAfterDetecting(AreaBase):
+  id: int
+  created_at: datetime
+  service_id: int
+  origin_text: str
+
 
 class AreaUpdate(CommonModel):
   id: int

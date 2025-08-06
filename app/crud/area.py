@@ -1,4 +1,5 @@
 from typing import List
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.tx import tx
@@ -34,3 +35,8 @@ async def update_area(db: AsyncSession, area_in: AreaUpdate) -> AreaRead:
         area.translated_text = area_in.translated_text
   
   return AreaRead.model_validate(area)
+
+async def read_areas_bulk_by_service_id(db: AsyncSession, service_id: int) -> List[AreaRead]:
+  result = await db.execute(select(Area).where(Area.service_id == service_id))
+  areas = result.scalars().all()
+  return [AreaRead.model_validate(area) for area in areas]

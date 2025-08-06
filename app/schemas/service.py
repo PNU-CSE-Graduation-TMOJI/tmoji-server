@@ -1,7 +1,9 @@
 from datetime import datetime
+from typing import List
 
 from pydantic import Field
 from app.models.enums.service import Language, ServiceMode, ServiceStatus, ServiceStep
+from app.schemas.area import AreaReadAfterDetecting
 from app.schemas.base import CommonModel
 
 class ServiceBase(CommonModel):
@@ -27,9 +29,15 @@ class ServiceUpdate(ServiceBase):
   status: ServiceStatus
   target_language: Language | None = None
 
-
 # Request Body
 class PostServiceRequest(ServiceBase):
   filename: str = Field(description="이미지 파일 이름", examples=["d4104220-044d-4c52-a6ab-cf63b3223ef7.png"])
   origin_language: Language = Field(description="원본 이미지 언어", examples=list(Language))
   service_mode: ServiceMode = Field(description="서비스의 번역 모드", examples=list(ServiceMode))
+
+# Response Body
+class GetServiceStatusResponse(ServiceBase):
+  isCompleted: bool
+  id: int
+  status: ServiceStatus
+  areas: List[AreaReadAfterDetecting] | None
