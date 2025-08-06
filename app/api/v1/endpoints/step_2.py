@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from PIL import Image as PILImage
 
-from app.api.v1.responses.step_2 import get_service_status_response, make_areas_response, patch_area_origin_text_response
+from app.api.v1.responses.step_2 import delete_area_response, get_service_status_response, make_areas_response, patch_area_origin_text_response
 from app.constants.image_path import CROP_DIR, UPLOAD_DIR
-from app.crud.area import create_areas_bulk, read_area_by_id, read_areas_bulk_by_service_id, update_area
+from app.crud.area import create_areas_bulk, delete_area_by_id, read_area_by_id, read_areas_bulk_by_service_id, update_area
 from app.crud.image import create_image, read_image_by_id
 from app.crud.service import read_service_by_id, update_service
 from app.db import get_db
@@ -181,6 +181,7 @@ async def patch_area_origin_text(service_id: str, area_id: str, request: PatchAr
   if area.service_id != service_id_num:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"해당 서비스에 할당된 영역이 아닙니다.")
   
+  # 2. 영역의 원본 텍스트 수정
   patched_area = await update_area(db, AreaUpdate(
     id=area_id_num,
     origin_text=request.newOriginText
@@ -196,3 +197,37 @@ async def patch_area_origin_text(service_id: str, area_id: str, request: PatchAr
     y2=patched_area.y2,
     origin_text=patched_area.origin_text or "error"
   )
+
+@router.delete(
+  "/area/{service_id}/{area_id}", 
+  summary="텍스트 영역 삭제", 
+  description=
+    f"""
+      ID와 일치하는 영역을 삭제합니다.
+    """,
+  status_code=status.HTTP_204_NO_CONTENT,
+  responses=delete_area_response()
+)
+async def delete_area(service_id: str, area_id: str, db: AsyncSession = Depends(get_db)):
+  service_id_num = int(service_id)
+  area_id_num = int(area_id)
+  
+  # 1. 영역 및 서비스 조회
+  service = await read_service_by_id(db, service_id_num)
+  if not service:
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="존재하지 않는 서비스입니다.")
+  if service.step != ServiceStep.DETECTING:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"DETECTING(OCR) 단계가 아닌 서비스입니다.")
+  if service.status != ServiceStatus.PENDING:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"OCR 동작이 진행 중인 서비스입니다.")
+
+  area = await read_area_by_id(db, area_id_num)
+  if not area:
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="존재하지 않는 영역입니다.")
+  if area.service_id != service_id_num:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"해당 서비스에 할당된 영역이 아닙니다.")
+  
+
+  await delete_area_by_id(db, area_id_num)
+
+  return

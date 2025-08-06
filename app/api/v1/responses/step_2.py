@@ -4,7 +4,7 @@ from fastapi import status
 def make_areas_response() -> Dict[int | str, Dict[str, Any]]:
   return {
     status.HTTP_202_ACCEPTED: {
-      "description": "OCR 접수 및 Area 생성이 요청된 Service 정보",
+      "description": "OCR 접수 및 영역 생성이 요청된 서비스 정보",
       "content": {
         "application/json": {
           "example": {
@@ -31,7 +31,7 @@ def make_areas_response() -> Dict[int | str, Dict[str, Any]]:
       }
     },
     status.HTTP_404_NOT_FOUND: {
-      "description": "존재하지 않는 Service",
+      "description": "존재하지 않는 서비스",
       "content": {
         "application/json": {
           "example": {
@@ -41,7 +41,7 @@ def make_areas_response() -> Dict[int | str, Dict[str, Any]]:
       }
     },
     status.HTTP_500_INTERNAL_SERVER_ERROR: {
-      "description": "예상치못한 서버 오류",
+      "description": "예상치 못한 서버 오류",
       "content": {
         "application/json": {
           "example": {
@@ -150,7 +150,39 @@ def patch_area_origin_text_response() -> Dict[int | str, Dict[str, Any]]:
       }
     },
     status.HTTP_404_NOT_FOUND: {
-      "description": "존재하지 않는 서비스",
+      "description": "존재하지 않는 서비스 또는 영역",
+      "content": {
+        "application/json": {
+          "example": {
+            "detail": "존재하지 않는 서비스입니다."
+          }
+        }
+      }
+    }
+  }
+
+def delete_area_response() -> Dict[int | str, Dict[str, Any]]:
+  return {
+    status.HTTP_204_NO_CONTENT: {
+      "description": "Area 삭제 완료",
+      "content": {
+        "application/json": {
+          "example": None
+        }
+      }
+    },
+    status.HTTP_400_BAD_REQUEST: {
+      "description": "잘못된 요청",
+      "content": {
+        "application/json": {
+          "example": {
+            "detail": "DETECTING(OCR) 단계가 아닌 서비스입니다."
+          }
+        }
+      }
+    },
+    status.HTTP_404_NOT_FOUND: {
+      "description": "존재하지 않는 서비스 또는 영역",
       "content": {
         "application/json": {
           "example": {
