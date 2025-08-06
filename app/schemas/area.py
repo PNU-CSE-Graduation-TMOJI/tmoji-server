@@ -36,3 +36,6 @@ class AreaUpdate(CommonModel):
 class PostAreaRequest(CommonModel):
   service_id: int
   areas: List[AreaBase]
+
+class PatchAreaOriginTextRequest(CommonModel):
+  newOriginText: str

@@ -40,3 +40,8 @@ async def read_areas_bulk_by_service_id(db: AsyncSession, service_id: int) -> Li
   result = await db.execute(select(Area).where(Area.service_id == service_id))
   areas = result.scalars().all()
   return [AreaRead.model_validate(area) for area in areas]
+
+async def read_area_by_id(db: AsyncSession, area_id: int) -> AreaRead | None:
+  result = await db.execute(select(Area).where(Area.id == area_id))
+  area = result.scalars().first()
+  return AreaRead.model_validate(area)

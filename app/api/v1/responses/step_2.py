@@ -1,7 +1,7 @@
 from typing import Any, Dict
 from fastapi import status
 
-def make_area_response() -> Dict[int | str, Dict[str, Any]]:
+def make_areas_response() -> Dict[int | str, Dict[str, Any]]:
   return {
     status.HTTP_202_ACCEPTED: {
       "description": "OCR 접수 및 Area 생성이 요청된 Service 정보",
@@ -109,7 +109,48 @@ def get_service_status_response() -> Dict[int | str, Dict[str, Any]]:
       }
     },
     status.HTTP_404_NOT_FOUND: {
-      "description": "이미지 처리 실패",
+      "description": "존재하지 않는 서비스",
+      "content": {
+        "application/json": {
+          "example": {
+            "detail": "존재하지 않는 서비스입니다."
+          }
+        }
+      }
+    }
+  }
+
+def patch_area_origin_text_response() -> Dict[int | str, Dict[str, Any]]:
+  return {
+    status.HTTP_201_CREATED: {
+      "description": "Area 정보",
+      "content": {
+        "application/json": {
+          "example": {
+              "x1": 119,
+              "x2": 755,
+              "y1": 732,
+              "y2": 874,
+              "id": 70,
+              "createdAt": "2025-08-06T14:03:57.798231Z",
+              "serviceId": 10,
+              "originText": "中島公園駅"
+          }
+        }
+      }
+    },
+    status.HTTP_400_BAD_REQUEST: {
+      "description": "잘못된 요청",
+      "content": {
+        "application/json": {
+          "example": {
+            "detail": "DETECTING(OCR) 단계가 아닌 서비스입니다."
+          }
+        }
+      }
+    },
+    status.HTTP_404_NOT_FOUND: {
+      "description": "존재하지 않는 서비스",
       "content": {
         "application/json": {
           "example": {
