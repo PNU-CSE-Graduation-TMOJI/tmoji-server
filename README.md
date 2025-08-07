@@ -1,21 +1,16 @@
 # TMOJI server
 
-# Requires
+## Requires
 
 - python 3.11
 - poetry
 - docker
 
-# Poetry Package
+## Poetry
 
-```
-    "fastapi (>=0.116.1,<0.117.0)",
-    "uvicorn (>=0.35.0,<0.36.0)",
-    "psycopg[binary] (>=3.2.9,<4.0.0)",
-    "python-dotenv (>=1.1.1,<2.0.0)"
-```
+- 필요한 dependencies는 pyproject.toml에 명시된 라이브러리들에 의해 자동으로 설치 됨
 
-# env & credentials setting
+## env & credentials setting
 
 ### Google Cloud Credentials
 
