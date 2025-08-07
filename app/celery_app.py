@@ -10,5 +10,8 @@ celery = Celery(
   __name__, 
   broker=BROKER, 
   backend=BACKEND,
-  include=["app.tasks.ocr"]
+  include=[
+    "app.tasks.ocr",
+    "app.tasks.translate"
+  ]
 )

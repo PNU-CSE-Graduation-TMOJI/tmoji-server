@@ -19,7 +19,8 @@ dependencies = [
     "celery[redis] (>=5.5.3,<6.0.0)",
     "paddleocr (>=3.1.0,<4.0.0)",
     "paddlepaddle (>=3.1.0,<4.0.0)",
-    "opencv-python-headless (>=4.12.0.88,<5.0.0.0)"
+    "opencv-python-headless (>=4.12.0.88,<5.0.0.0)",
+    "google-cloud-translate (>=3.21.1,<4.0.0)"
 ]
 
 
