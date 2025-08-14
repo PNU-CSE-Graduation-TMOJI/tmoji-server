@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List
 
 from app.models.enums.service import Language, ServiceMode, ServiceStatus, ServiceStep
-from app.schemas.area import AreaReadAfterDetecting
+from app.schemas.area import AreaReadAfterDetecting, AreaReadAfterTranslating
 from app.schemas.base import CommonModel
 
 class ServiceBase(CommonModel):
@@ -38,8 +38,14 @@ class PostServiceTranslateRequest(CommonModel):
   target_language: Language
 
 # Response Body
-class GetServiceStatusResponse(ServiceBase):
+class GetServiceDetectingStatusResponse(ServiceBase):
   isCompleted: bool
   id: int
   status: ServiceStatus
   areas: List[AreaReadAfterDetecting] | None
+
+class GetServiceTranslatingStatusResponse(ServiceBase):
+  isCompleted: bool
+  id: int
+  status: ServiceStatus
+  areas: List[AreaReadAfterTranslating] | None

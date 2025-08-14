@@ -1,58 +1,7 @@
 from typing import Any, Dict
 from fastapi import status
 
-def make_areas_response() -> Dict[int | str, Dict[str, Any]]:
-  return {
-    status.HTTP_202_ACCEPTED: {
-      "description": "OCR 접수 및 영역 생성이 요청된 서비스 정보",
-      "content": {
-        "application/json": {
-          "example": {
-            "id": 10,
-            "originImageId": 33,
-            "mode": "AI",
-            "step": "DETECTING",
-            "status": "PROCESSING",
-            "originLanguage": "JP",
-            "targetLanguage": None,
-            "createdAt": "2025-08-05T18:37:06.468436Z"
-          }
-        }
-      }
-    },
-    status.HTTP_400_BAD_REQUEST: {
-      "description": "잘못된 요청",
-      "content": {
-        "application/json": {
-          "example": {
-            "detail": "이미 영역을 생성한 서비스입니다."
-          }
-        }
-      }
-    },
-    status.HTTP_404_NOT_FOUND: {
-      "description": "존재하지 않는 서비스",
-      "content": {
-        "application/json": {
-          "example": {
-            "detail": "존재하지 않는 서비스입니다."
-          }
-        }
-      }
-    },
-    status.HTTP_500_INTERNAL_SERVER_ERROR: {
-      "description": "예상치 못한 서버 오류",
-      "content": {
-        "application/json": {
-          "example": {
-            "detail": "서버 오류가 발생하였습니다."
-          }
-        }
-      }
-    }
-  }
-
-def get_service_detecting_status_response() -> Dict[int | str, Dict[str, Any]]:
+def get_service_translating_status_response() -> Dict[int | str, Dict[str, Any]]:
   return {
     status.HTTP_200_OK: {
       "description": "Service 정보",
@@ -103,7 +52,7 @@ def get_service_detecting_status_response() -> Dict[int | str, Dict[str, Any]]:
       "content": {
         "application/json": {
           "example": {
-            "detail": "DETECTING(OCR) 단계가 아닌 서비스입니다."
+            "detail": "TRANSLATING 단계가 아닌 서비스입니다."
           }
         }
       }

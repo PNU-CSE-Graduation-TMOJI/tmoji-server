@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from PIL import Image as PILImage
 
-from app.api.v1.responses.step_2 import delete_area_response, get_service_status_response, make_areas_response, patch_area_origin_text_response
+from app.api.v1.responses.step_2 import delete_area_response, get_service_detecting_status_response, make_areas_response, patch_area_origin_text_response
 from app.constants.image_path import CROP_DIR, UPLOAD_DIR
 from app.crud.area import create_areas_bulk, delete_area_by_id, read_area_by_id, read_areas_bulk_by_service_id, update_area
 from app.crud.image import create_image, read_image_by_id
@@ -13,7 +13,7 @@ from app.db import get_db
 from app.models.enums.service import ServiceStep, ServiceStatus
 from app.schemas.area import AreaCreate, AreaReadAfterDetecting, AreaUpdate, PatchAreaOriginTextRequest, PostAreaRequest
 from app.schemas.image import ImageCreate, ImageRead
-from app.schemas.service import GetServiceStatusResponse, PostServiceTranslateRequest, ServiceUpdate
+from app.schemas.service import GetServiceDetectingStatusResponse, PostServiceTranslateRequest, ServiceUpdate
 from app.tasks.ocr import AreaPayload, extract_areas
 from app.tasks.translate import TranslatePayload, translate_areas
 
@@ -106,10 +106,10 @@ async def make_areas(request: PostAreaRequest, db: AsyncSession = Depends(get_db
       </ui>
     """,
   status_code=status.HTTP_200_OK,
-  response_model=GetServiceStatusResponse,
-  responses=get_service_status_response()
+  response_model=GetServiceDetectingStatusResponse,
+  responses=get_service_detecting_status_response()
 )
-async def get_service_status(service_id: str, db: AsyncSession = Depends(get_db)):
+async def get_service_detecting_status(service_id: str, db: AsyncSession = Depends(get_db)):
   service_id_num = int(service_id)
 
   # 1. 서비스 조회 & 유효성 검사
@@ -135,14 +135,14 @@ async def get_service_status(service_id: str, db: AsyncSession = Depends(get_db)
       ) for area in areas
     ]
 
-    return GetServiceStatusResponse(
+    return GetServiceDetectingStatusResponse(
       isCompleted=True,
       id=service_id_num,
       status=service.status,
       areas=areas_after_detecting
     )
   else:
-    return GetServiceStatusResponse(
+    return GetServiceDetectingStatusResponse(
       isCompleted=True,
       id=service_id_num,
       status=service.status,

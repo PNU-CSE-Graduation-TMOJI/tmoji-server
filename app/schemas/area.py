@@ -25,6 +25,9 @@ class AreaReadAfterDetecting(AreaBase):
   service_id: int
   origin_text: str
 
+class AreaReadAfterTranslating(AreaReadAfterDetecting):
+  translated_text: str
+
 
 class AreaUpdate(CommonModel):
   id: int
