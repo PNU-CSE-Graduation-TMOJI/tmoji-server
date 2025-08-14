@@ -126,7 +126,7 @@ def delete_area_response() -> Dict[int | str, Dict[str, Any]]:
       "content": {
         "application/json": {
           "example": {
-            "detail": "DETECTING(OCR) 단계가 아닌 서비스입니다."
+            "detail": "TRANSLATING 단계가 아닌 서비스입니다."
           }
         }
       }
