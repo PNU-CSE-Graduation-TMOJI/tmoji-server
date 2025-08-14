@@ -16,6 +16,7 @@ class ServiceCreate(ServiceBase):
 class ServiceRead(ServiceBase):
   id: int
   origin_image_id: int
+  composed_image_id: int | None = None
   mode: ServiceMode
   step: ServiceStep
   status: ServiceStatus
@@ -24,9 +25,11 @@ class ServiceRead(ServiceBase):
   created_at: datetime
 
 class ServiceUpdate(ServiceBase):
-  step: ServiceStep
-  status: ServiceStatus
+  step: ServiceStep | None = None
+  status: ServiceStatus | None = None
   target_language: Language | None = None
+  composed_image_id: int | None = None
+
 
 # Request Body
 class PostServiceRequest(ServiceBase):
@@ -49,3 +52,9 @@ class GetServiceTranslatingStatusResponse(ServiceBase):
   id: int
   status: ServiceStatus
   areas: List[AreaReadAfterTranslating] | None
+
+class GetServiceComposingStatusResponse(ServiceBase):
+  isCompleted: bool
+  id: int
+  status: ServiceStatus
+  composed_image_filename: str | None

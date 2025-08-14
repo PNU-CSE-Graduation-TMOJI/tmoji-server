@@ -12,6 +12,7 @@ celery = Celery(
   backend=BACKEND,
   include=[
     "app.tasks.ocr",
-    "app.tasks.translate"
+    "app.tasks.translate",
+    "app.tasks.compose",
   ]
 )

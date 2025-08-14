@@ -32,9 +32,9 @@ async def make_service_to_translating_mode(request: PostServiceTranslateRequest,
   if not service:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="존재하지 않는 서비스입니다.")
   if service.step != ServiceStep.DETECTING:
-    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"DETECTING step이 아닙니다.")
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"DETECTING 단계가 아닙니다.")
   if service.status != ServiceStatus.PENDING:
-    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"OCR 진행 중이거나 오류로 인해 진행할 수 없는 서비스입니다.")
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"번역이 진행 중이거나 오류로 인해 진행할 수 없는 서비스입니다.")
 
   # 2. 서비스 step 전환
   service_in = ServiceUpdate(
@@ -70,7 +70,7 @@ async def make_service_to_translating_mode(request: PostServiceTranslateRequest,
   response_model=GetServiceTranslatingStatusResponse,
   responses=get_service_translating_status_response()
 )
-async def get_service_status(service_id: str, db: AsyncSession = Depends(get_db)):
+async def get_service_translating_status(service_id: str, db: AsyncSession = Depends(get_db)):
   service_id_num = int(service_id)
 
   # 1. 서비스 조회 & 유효성 검사
