@@ -69,7 +69,7 @@ def get_service_translating_status_response() -> Dict[int | str, Dict[str, Any]]
     }
   }
 
-def patch_area_origin_text_response() -> Dict[int | str, Dict[str, Any]]:
+def patch_area_translated_text_response() -> Dict[int | str, Dict[str, Any]]:
   return {
     status.HTTP_201_CREATED: {
       "description": "Area 정보",
@@ -83,7 +83,8 @@ def patch_area_origin_text_response() -> Dict[int | str, Dict[str, Any]]:
               "id": 70,
               "createdAt": "2025-08-06T14:03:57.798231Z",
               "serviceId": 10,
-              "originText": "中島公園駅"
+              "originText": "中島公園駅",
+              "translatedText": "나카지마공원역"
           }
         }
       }
@@ -93,7 +94,7 @@ def patch_area_origin_text_response() -> Dict[int | str, Dict[str, Any]]:
       "content": {
         "application/json": {
           "example": {
-            "detail": "DETECTING(OCR) 단계가 아닌 서비스입니다."
+            "detail": "TRANSLATING 단계가 아닌 서비스입니다."
           }
         }
       }

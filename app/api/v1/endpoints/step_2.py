@@ -13,9 +13,8 @@ from app.db import get_db
 from app.models.enums.service import ServiceStep, ServiceStatus
 from app.schemas.area import AreaCreate, AreaReadAfterDetecting, AreaUpdate, PatchAreaOriginTextRequest, PostAreaRequest
 from app.schemas.image import ImageCreate, ImageRead
-from app.schemas.service import GetServiceDetectingStatusResponse, PostServiceTranslateRequest, ServiceUpdate
+from app.schemas.service import GetServiceDetectingStatusResponse, ServiceUpdate
 from app.tasks.ocr import AreaPayload, extract_areas
-from app.tasks.translate import TranslatePayload, translate_areas
 
 router = APIRouter()
 
@@ -165,7 +164,7 @@ async def patch_area_origin_text(service_id: str, area_id: str, request: PatchAr
   area_id_num = int(area_id)
 
   # 0. 유효성 검사
-  if len(request.newOriginText) == 0 :
+  if len(request.new_origin_text) == 0 :
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="newOriginText가 비어 있습니다.")
   
   # 1. 영역 및 서비스 조회
@@ -186,7 +185,7 @@ async def patch_area_origin_text(service_id: str, area_id: str, request: PatchAr
   # 2. 영역의 원본 텍스트 수정
   patched_area = await update_area(db, AreaUpdate(
     id=area_id_num,
-    origin_text=request.newOriginText
+    origin_text=request.new_origin_text
   ))
 
   return AreaReadAfterDetecting(
@@ -233,44 +232,3 @@ async def delete_area(service_id: str, area_id: str, db: AsyncSession = Depends(
   await delete_area_by_id(db, area_id_num)
 
   return
-
-@router.post(
-  "/service/{service_id}/translate",
-  summary="텍스트 번역 진행 (비동기)", 
-  description=
-    f"""
-      ID와 일치하는 서비스의 번역을 진행합니다.<br>
-      (비동기) 영역별로 텍스트의 번역 모델을 가동합니다.
-    """,
-  status_code=status.HTTP_202_ACCEPTED,
-)
-async def make_service_to_translating_mode(request: PostServiceTranslateRequest, service_id: str, db: AsyncSession = Depends(get_db)):
-  service_id_num = int(service_id)
-
-  # 1. 서비스 조회
-  service = await read_service_by_id(db, service_id_num)
-  if not service:
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="존재하지 않는 서비스입니다.")
-  if service.step != ServiceStep.DETECTING:
-    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"DETECTING step이 아닙니다.")
-  if service.status != ServiceStatus.PENDING:
-    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"OCR 진행 중이거나 오류로 인해 진행할 수 없는 서비스입니다.")
-
-  # 2. 서비스 step 전환
-  service_in = ServiceUpdate(
-    step=ServiceStep.TRANSLATING,
-    status=ServiceStatus.PROCESSING,
-    target_language=request.target_language,
-  )
-  updated_service = await update_service(db=db, id=service.id, service_in=service_in)
-
-  # 3. 번역 진행
-  payload = TranslatePayload(
-    service_id=service_id_num, 
-    origin_language=service.origin_language,
-    target_language=request.target_language
-  )
-
-  translate_areas.delay(payload, service.id)
-
-  return updated_service

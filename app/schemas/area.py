@@ -41,4 +41,7 @@ class PostAreaRequest(CommonModel):
   areas: List[AreaBase]
 
 class PatchAreaOriginTextRequest(CommonModel):
-  newOriginText: str
+  new_origin_text: str
+
+class PatchAreaTranslatedTextRequest(CommonModel):
+  new_translated_text: str
