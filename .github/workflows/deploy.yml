@@ -91,7 +91,10 @@ jobs:
                 "if command -v rsync >/dev/null 2>&1; then rsync -a --delete /opt/fastapi-app_tmp/ /opt/fastapi-app/; else cp -a /opt/fastapi-app_tmp/. /opt/fastapi-app/; fi",
                 "rm -f /tmp/app.zip",
                 "aws ssm get-parameter --name /fastapi/env_docker --with-decryption --query Parameter.Value --output text > .env.docker",
-                "aws ssm get-parameter --name /fastapi/gcloud_sa_json --with-decryption --query Parameter.Value --output text > /credentials/gcloud-sa-key.json"
+                "mkdir -p /opt/fastapi-app/credentials",
+                "aws ssm get-parameter --name /fastapi/gcloud_sa_json --with-decryption --output json | jq -r '.Parameter.Value' > /opt/fastapi-app/credentials/gcloud-sa-key.json",
+                "chmod 600 /opt/fastapi-app/credentials/gcloud-sa-key.json",
+                "chown ec2-user:ec2-user /opt/fastapi-app/credentials/gcloud-sa-key.json",
                 "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker pull || true",
                 "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker build",
                 "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker up -d db redis",
