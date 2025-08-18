@@ -12,7 +12,7 @@ services:
     ports:
       - "5432:5432"
     env_file:
-      - .env.docker
+      - .env.local
     healthcheck:
       test:
         [
@@ -31,13 +31,14 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - .:/code
+      - ${HOME}/.aws:/root/.aws:ro
       - type: volume
         source: dummy_venv
         target: /code/.venv
     ports:
       - "8000:8000"
     env_file:
-      - .env.docker
+      - .env.local
     depends_on:
       - db
 
@@ -52,7 +53,7 @@ services:
         source: dummy_venv
         target: /code/.venv
     env_file:
-      - .env.docker
+      - .env.local
     depends_on:
       db:
         condition: service_healthy
@@ -70,7 +71,7 @@ services:
     restart: always
     command: celery -A app.celery_app.celery worker -l info --concurrency=2
     env_file:
-      - .env.docker
+      - .env.local
     depends_on:
       - redis
       - db

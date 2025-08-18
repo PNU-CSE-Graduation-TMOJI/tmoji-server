@@ -1,11 +1,8 @@
-import os
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from PIL import Image as PILImage
 
 from app.api.v1.responses.step_2 import delete_area_response, get_service_detecting_status_response, make_areas_response, patch_area_origin_text_response
-from app.constants.image_path import CROP_DIR, UPLOAD_DIR
 from app.crud.area import create_areas_bulk, delete_area_by_id, read_area_by_id, read_areas_bulk_by_service_id, update_area
 from app.crud.image import create_image, read_image_by_id
 from app.crud.service import read_service_by_id, update_service
@@ -15,8 +12,10 @@ from app.schemas.area import AreaCreate, AreaReadAfterDetecting, AreaUpdate, Pat
 from app.schemas.image import ImageCreate, ImageRead
 from app.schemas.service import GetServiceDetectingStatusResponse, ServiceUpdate
 from app.tasks.ocr import AreaPayload, extract_areas
+from app.utils.storage import build_storage
 
 router = APIRouter()
+storage = build_storage()
 
 @router.post(
   "/areas", 
@@ -47,15 +46,13 @@ async def make_areas(request: PostAreaRequest, db: AsyncSession = Depends(get_db
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="서버 오류가 발생하였습니다.")
   
   cropped_images: List[ImageRead] = []
-  originImageFile = PILImage.open(os.path.join(UPLOAD_DIR, originImage.filename))
+  originImageFile = storage.load_image(originImage.filename, "upload")
 
-  os.makedirs(CROP_DIR, exist_ok=True)
   for i, area in enumerate(request.areas):
     cropped = originImageFile.crop((area.x1, area.y1, area.x2, area.y2))
 
     cropped_filename = f'{originImage.filename[:-4]}_{i+1}.png'
-    cropped_save_path = os.path.join(CROP_DIR, cropped_filename)
-    cropped.save(cropped_save_path, format="PNG")
+    storage.save_png(cropped, cropped_filename, target="crop")
 
     image_db = await create_image(db, image_in=ImageCreate(filename=cropped_filename))
     cropped_images.append(image_db)
@@ -84,7 +81,7 @@ async def make_areas(request: PostAreaRequest, db: AsyncSession = Depends(get_db
   for i, area in enumerate(areas):
     area_pay_load = AreaPayload(
       area_id=area.id,
-      image_path=os.path.join(CROP_DIR, cropped_images[i].filename),
+      filename=cropped_images[i].filename,
       lang=service.origin_language.value,
     )
     payloads.append(area_pay_load)
