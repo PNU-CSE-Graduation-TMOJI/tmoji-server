@@ -63,6 +63,7 @@ jobs:
       - name: Trigger SSM RunCommand on EC2
         run: |
           INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
+          S3_BUCKET_NAME="${{ secrets.S3_BUCKET_NAME }}"
           aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
@@ -72,7 +73,7 @@ jobs:
                 "set -e",
                 "mkdir -p /opt/fastapi-app /opt/fastapi-app_tmp",
                 "cd /opt/fastapi-app",
-                "aws s3 cp s3://'"${S3_BUCKET_NAME}"'/latest.zip /tmp/app.zip",
+                "aws s3 cp s3://'"$S3_BUCKET_NAME"'/latest.zip /tmp/app.zip",
                 "rm -rf /opt/fastapi-app_tmp/*",
                 "unzip -o /tmp/app.zip -d /opt/fastapi-app_tmp",
                 "command -v rsync >/dev/null 2>&1 || sudo yum install -y rsync || true",
