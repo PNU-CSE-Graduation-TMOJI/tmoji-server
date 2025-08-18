@@ -80,8 +80,12 @@ jobs:
                 "if command -v rsync >/dev/null 2>&1; then rsync -a --delete /opt/fastapi-app_tmp/ /opt/fastapi-app/; else cp -a /opt/fastapi-app_tmp/. /opt/fastapi-app/; fi",
                 "rm -f /tmp/app.zip",
                 "aws ssm get-parameter --name /fastapi/env_docker --with-decryption --query Parameter.Value --output text > .env.docker",
-                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker up -d --build",
-                "docker image prune -f",
-                "docker-compose ps"
+                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker pull || true",
+                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker build",
+                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker up -d db redis",
+                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker run --rm migration",
+                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker up -d web worker reverse-proxy",
+                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker ps",
+                "docker image prune -f || true"
               ]
             }'

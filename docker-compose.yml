@@ -34,7 +34,8 @@ services:
   migration:
     build: .
     container_name: alembic_migration
-    command: /bin/sh -c "sleep 3 && poetry run alembic upgrade head"
+    command: poetry run alembic upgrade head
+    restart: "no"
     volumes:
       - .:/code
       - type: volume
@@ -43,7 +44,8 @@ services:
     env_file:
       - .env.docker
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   redis:
     image: redis:7
