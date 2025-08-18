@@ -84,4 +84,3 @@ jobs:
                 "docker compose ps"
               ]
             }'
-            --output text
