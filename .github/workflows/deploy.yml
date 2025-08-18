@@ -1,0 +1,70 @@
+name: Deploy to S3 and to ec2
+
+on:
+  push:
+    branches: ["prod"]
+
+permissions:
+  id-token: write # OIDC
+  contents: read
+
+jobs:
+  build_and_upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make artifact (zip)
+        run: |
+          mkdir -p dist
+          # 배포에 필요한 파일만 압축: docker-compose들, app 코드, deploy/nginx.conf, etc.
+          zip -r dist/app.zip \
+            app docker-compose.yml docker-compose.prod.yml \
+            deploy .env.docker pyproject.toml poetry.lock \
+            Dockerfile alembic alembic.ini font README.md \
+            --exclude "**/__pycache__/**" ".git/**" ".github/**"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_ID }}:role/${{ secrets.OIDC_ROLE_NAME }}
+          aws-region: ap-northeast-2
+
+      - name: Upload to S3
+        run: |
+          TS=$(date +%Y%m%d-%H%M%S)
+          aws s3 cp dist/app.zip s3://${{ secrets.S3_BUCKET_NAME }}/app-$TS.zip
+          # 최신심볼릭 역할: latest.zip 덮어쓰기
+          aws s3 cp dist/app.zip s3://${{ secrets.S3_BUCKET_NAME }}/latest.zip
+
+  run_on_ec2:
+    needs: build_and_upload
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_ID }}:role/${{ secrets.OIDC_ROLE_NAME }}
+          aws-region: ap-northeast-2
+
+      - name: Trigger SSM RunCommand on EC2
+        run: |
+          INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
+          aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy fastapi via S3 artifact" \
+            --parameters 'commands=[
+              "set -e",
+              "cd /opt/fastapi-app",
+              "aws s3 cp s3://${{ secrets.S3_BUCKET_NAME }}/latest.zip /tmp/app.zip",
+              "rm -rf /opt/fastapi-app_tmp && mkdir -p /opt/fastapi-app_tmp",
+              "unzip -o /tmp/app.zip -d /opt/fastapi-app_tmp",
+              "rsync -a --delete /opt/fastapi-app_tmp/ /opt/fastapi-app/",
+              "rm -f /tmp/app.zip",
+              # Compose 실행
+              "docker compose --env-file .env.docker -f docker-compose.yml -f docker-compose.prod.yml up -d --build",
+              "docker image prune -f"
+            ]' \
+            --output text
