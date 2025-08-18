@@ -51,11 +51,13 @@ jobs:
           aws-region: ap-northeast-2
 
       - name: Put .env.docker into SSM Parameter Store
+        env:
+          ENV_DOCKER: ${{ secrets.ENV_DOCKER }}
         run: |
           aws ssm put-parameter \
             --name "/fastapi/env_docker" \
             --type "SecureString" \
-            --value "${{ secrets.ENV_DOCKER }}" \
+            --value "$ENV_DOCKER" \
             --overwrite
 
       - name: Trigger SSM RunCommand on EC2
