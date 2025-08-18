@@ -142,7 +142,7 @@ async def get_service_detecting_status(service_id: str, db: AsyncSession = Depen
     )
   else:
     return GetServiceDetectingStatusResponse(
-      isCompleted=True,
+      isCompleted=False,
       id=service_id_num,
       status=service.status,
       areas=None

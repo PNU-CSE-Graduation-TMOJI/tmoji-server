@@ -105,7 +105,7 @@ async def get_service_translating_status(service_id: str, db: AsyncSession = Dep
     )
   else:
     return GetServiceTranslatingStatusResponse(
-      isCompleted=True,
+      isCompleted=False,
       id=service_id_num,
       status=service.status,
       areas=None
