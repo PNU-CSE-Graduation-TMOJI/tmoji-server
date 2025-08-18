@@ -68,6 +68,7 @@ jobs:
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --comment "Deploy fastapi via S3 artifact" \
+            --cloud-watch-output-config "CloudWatchOutputEnabled=true,CloudWatchLogGroupName=/aws/ssm/tmoji-deploy" \
             --parameters '{
               "commands": [
                 "set -e",
