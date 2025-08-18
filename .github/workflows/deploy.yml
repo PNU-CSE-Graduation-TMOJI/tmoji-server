@@ -60,6 +60,16 @@ jobs:
             --value "$ENV_DOCKER" \
             --overwrite
 
+      - name: Put gcloud secret into SSM Parameter Store
+        env:
+          GCLOUD_SECRET: ${{ secrets.GCLOUD_SECRET }}
+        run: |
+          aws ssm put-parameter \
+            --name "/fastapi/gcloud_sa_json" \
+            --type "SecureString" \
+            --value "$GCLOUD_SECRET" \
+            --overwrite
+
       - name: Trigger SSM RunCommand on EC2
         run: |
           INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
@@ -81,6 +91,7 @@ jobs:
                 "if command -v rsync >/dev/null 2>&1; then rsync -a --delete /opt/fastapi-app_tmp/ /opt/fastapi-app/; else cp -a /opt/fastapi-app_tmp/. /opt/fastapi-app/; fi",
                 "rm -f /tmp/app.zip",
                 "aws ssm get-parameter --name /fastapi/env_docker --with-decryption --query Parameter.Value --output text > .env.docker",
+                "aws ssm get-parameter --name /fastapi/gcloud_sa_json --with-decryption --query Parameter.Value --output text > /credentials/gcloud-sa-key.json"
                 "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker pull || true",
                 "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker build",
                 "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker up -d db redis",
