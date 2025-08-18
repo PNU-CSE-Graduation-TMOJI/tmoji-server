@@ -18,6 +18,25 @@
 - 구글 클라우드에서 받은 인증 키를 아래 경로에 배치
   - `@/credentials/your-gcloud-key.json`
 
+### aws credentilas (로컬에서 s3 접근 시 필요)
+
+PowerShell에서 한 번만 설정:
+
+```sh
+aws configure --profile tmoji
+# AWS Access Key ID: <발급받은 키>
+# AWS Secret Access Key: <발급받은 시크릿>
+# Default region name: <region>
+# Default output format: json
+```
+
+확인:
+
+```sh
+aws sts get-caller-identity --profile tmoji
+aws s3 ls s3://your-bucket-name --profile tmoji
+```
+
 ### .env.docker
 
 ```bash

@@ -1,3 +1,5 @@
-UPLOAD_DIR = './photo/origin'
-CROP_DIR = './photo/crop'
-COMPOSE_DIR = './photo/compose'
+# ./photo/origin, ./photo/crop, ./photo/compose
+IMAGE_BASE_DIR = 'photo'
+UPLOAD_DIR = 'origin'
+CROP_DIR = 'crop'
+COMPOSE_DIR = 'compose'

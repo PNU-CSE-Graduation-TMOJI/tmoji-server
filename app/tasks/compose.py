@@ -1,13 +1,11 @@
 # pyright: reportUnknownMemberType=false, reportAttributeAccessIssue=false, reportUnknownVariableType=false
 
 import asyncio
-import os
 from app.celery_app import celery
 from typing import TypedDict
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 from app.constants.database_url import DATABASE_URL
-from app.constants.image_path import COMPOSE_DIR, UPLOAD_DIR
 from app.crud.area import read_areas_bulk_by_service_id
 from app.crud.image import create_image, read_image_by_id
 from app.crud.service import read_service_by_id, update_service
@@ -15,12 +13,16 @@ from app.models.enums.service import ServiceMode, ServiceStatus, ServiceStep
 from app.schemas.image import ImageCreate
 from app.schemas.service import ServiceRead, ServiceUpdate
 
-from PIL import Image as PILImage, ImageDraw, ImageFont
+from PIL import ImageDraw, ImageFont
+
+from app.utils.storage import build_storage
 
 
 # --- 워커 전용 세션팩토리 ---
 _engine = create_async_engine(DATABASE_URL, future=True)
 SessionLocal = async_sessionmaker(_engine, expire_on_commit=False, class_=AsyncSession)
+
+storage = build_storage()
 
 def get_resized_font(
   text: str,
@@ -53,7 +55,7 @@ async def compose_image_machine_mode(db: AsyncSession, service: ServiceRead) -> 
   if not origin_image_read:
     raise Exception("id와 일치하는 image를 찾을 수 없습니다.")
   
-  imageFile = PILImage.open(os.path.join(UPLOAD_DIR, origin_image_read.filename)).convert("RGB")
+  imageFile = storage.load_image(origin_image_read.filename, "upload")
   draw = ImageDraw.Draw(imageFile)
   
   areas = await read_areas_bulk_by_service_id(db, service.id)\
@@ -70,10 +72,7 @@ async def compose_image_machine_mode(db: AsyncSession, service: ServiceRead) -> 
     draw.text(text_position, text, fill="black", font=font)
   
   composed_filename = f"composed_{origin_image_read.filename}"
-  composed_path = os.path.join(COMPOSE_DIR, composed_filename)
-
-  os.makedirs(COMPOSE_DIR, exist_ok=True)
-  imageFile.save(composed_path)
+  storage.save_png(imageFile, composed_filename, target="compose")
 
   created_image = await create_image(db, image_in=ImageCreate(filename=composed_filename))
   service_in = ServiceUpdate(composed_image_id=created_image.id)
