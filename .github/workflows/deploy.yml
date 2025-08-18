@@ -50,7 +50,7 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_ID }}:role/${{ secrets.OIDC_ROLE_NAME }}
           aws-region: ap-northeast-2
 
-      - name: Put .env.prod into SSM Parameter Store
+      - name: Put .env into SSM Parameter Store
         env:
           ENV_PROD: ${{ secrets.ENV_PROD }}
         run: |
@@ -90,14 +90,14 @@ jobs:
                 "command -v rsync >/dev/null 2>&1 || sudo yum install -y rsync || true",
                 "if command -v rsync >/dev/null 2>&1; then rsync -a --delete /opt/fastapi-app_tmp/ /opt/fastapi-app/; else cp -a /opt/fastapi-app_tmp/. /opt/fastapi-app/; fi",
                 "rm -f /tmp/app.zip",
-                "aws ssm get-parameter --name /fastapi/env_prod --with-decryption --query Parameter.Value --output text > .env.prod",
+                "aws ssm get-parameter --name /fastapi/env_prod --with-decryption --query Parameter.Value --output text > .env",
                 "mkdir -p /opt/fastapi-app/credentials",
                 "aws ssm get-parameter --name /fastapi/gcloud_sa_json --with-decryption --output json | jq -r '.Parameter.Value' > /opt/fastapi-app/credentials/gcloud-sa-key.json",
                 "chmod 600 /opt/fastapi-app/credentials/gcloud-sa-key.json",
                 "chown ec2-user:ec2-user /opt/fastapi-app/credentials/gcloud-sa-key.json",
-                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod down",
-                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod up -d --build",
-                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod run --rm migration",
+                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env down",
+                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env up -d --build",
+                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env run --rm migration",
                 "docker image prune -f || true"
               ]
             }'
