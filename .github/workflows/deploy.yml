@@ -21,7 +21,7 @@ jobs:
           # 배포에 필요한 파일만 압축: docker-compose들, app 코드, deploy/nginx.conf, etc.
           zip -r dist/app.zip \
             app docker-compose.yml docker-compose.prod.yml \
-            deploy .env.docker pyproject.toml poetry.lock \
+            deploy pyproject.toml poetry.lock \
             Dockerfile alembic alembic.ini font README.md \
             --exclude "**/__pycache__/**" ".git/**" ".github/**"
 
@@ -48,6 +48,14 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_ID }}:role/${{ secrets.OIDC_ROLE_NAME }}
           aws-region: ap-northeast-2
 
+      - name: Put .env.docker into SSM Parameter Store
+        run: |
+          aws ssm put-parameter \
+            --name "/fastapi/env_docker" \
+            --type "SecureString" \
+            --value "${{ secrets.ENV_DOCKER }}" \
+            --overwrite
+
       - name: Trigger SSM RunCommand on EC2
         run: |
           INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
@@ -57,14 +65,20 @@ jobs:
             --comment "Deploy fastapi via S3 artifact" \
             --parameters 'commands=[
               "set -e",
+              "mkdir -p /opt/fastapi-app /opt/fastapi-app_tmp",
               "cd /opt/fastapi-app",
               "aws s3 cp s3://${{ secrets.S3_BUCKET_NAME }}/latest.zip /tmp/app.zip",
-              "rm -rf /opt/fastapi-app_tmp && mkdir -p /opt/fastapi-app_tmp",
+              "rm -rf /opt/fastapi-app_tmp/*",
               "unzip -o /tmp/app.zip -d /opt/fastapi-app_tmp",
-              "rsync -a --delete /opt/fastapi-app_tmp/ /opt/fastapi-app/",
+              # rsync 없을 수 있어서 설치 시도 (Amazon Linux)
+              "command -v rsync >/dev/null 2>&1 || sudo yum install -y rsync || true",
+              "if command -v rsync >/dev/null 2>&1; then rsync -a --delete /opt/fastapi-app_tmp/ /opt/fastapi-app/; else cp -a /opt/fastapi-app_tmp/. /opt/fastapi-app/; fi",
               "rm -f /tmp/app.zip",
-              # Compose 실행
-              "docker compose --env-file .env.docker -f docker-compose.yml -f docker-compose.prod.yml up -d --build",
-              "docker image prune -f"
-            ]' \
+              # ✅ SSM Parameter Store에서 .env.docker 복원 (OIDC 역할에 ssm:GetParameter 필요)
+              "aws ssm get-parameter --name \"/fastapi/env_docker\" --with-decryption --query Parameter.Value --output text > .env.docker",
+              # Docker Compose 배포
+              "docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker up -d --build",
+              "docker image prune -f",
+              "docker compose ps"
+            ]}' \
             --output text
