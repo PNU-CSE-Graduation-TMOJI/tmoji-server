@@ -67,22 +67,21 @@ jobs:
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --comment "Deploy fastapi via S3 artifact" \
-            --parameters 'commands=[
-              "set -e",
-              "mkdir -p /opt/fastapi-app /opt/fastapi-app_tmp",
-              "cd /opt/fastapi-app",
-              "aws s3 cp s3://${{ secrets.S3_BUCKET_NAME }}/latest.zip /tmp/app.zip",
-              "rm -rf /opt/fastapi-app_tmp/*",
-              "unzip -o /tmp/app.zip -d /opt/fastapi-app_tmp",
-              # rsync 없을 수 있어서 설치 시도 (Amazon Linux)
-              "command -v rsync >/dev/null 2>&1 || sudo yum install -y rsync || true",
-              "if command -v rsync >/dev/null 2>&1; then rsync -a --delete /opt/fastapi-app_tmp/ /opt/fastapi-app/; else cp -a /opt/fastapi-app_tmp/. /opt/fastapi-app/; fi",
-              "rm -f /tmp/app.zip",
-              # ✅ SSM Parameter Store에서 .env.docker 복원 (OIDC 역할에 ssm:GetParameter 필요)
-              "aws ssm get-parameter --name \"/fastapi/env_docker\" --with-decryption --query Parameter.Value --output text > .env.docker",
-              # Docker Compose 배포
-              "docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker up -d --build",
-              "docker image prune -f",
-              "docker compose ps"
-            ]}' \
+            --parameters '{
+              "commands": [
+                "set -e",
+                "mkdir -p /opt/fastapi-app /opt/fastapi-app_tmp",
+                "cd /opt/fastapi-app",
+                "aws s3 cp s3://'"${S3_BUCKET_NAME}"'/latest.zip /tmp/app.zip",
+                "rm -rf /opt/fastapi-app_tmp/*",
+                "unzip -o /tmp/app.zip -d /opt/fastapi-app_tmp",
+                "command -v rsync >/dev/null 2>&1 || sudo yum install -y rsync || true",
+                "if command -v rsync >/dev/null 2>&1; then rsync -a --delete /opt/fastapi-app_tmp/ /opt/fastapi-app/; else cp -a /opt/fastapi-app_tmp/. /opt/fastapi-app/; fi",
+                "rm -f /tmp/app.zip",
+                "aws ssm get-parameter --name /fastapi/env_docker --with-decryption --query Parameter.Value --output text > .env.docker",
+                "docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker up -d --build",
+                "docker image prune -f",
+                "docker compose ps"
+              ]
+            }'
             --output text
