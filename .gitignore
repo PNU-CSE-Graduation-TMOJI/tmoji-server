@@ -16,3 +16,9 @@ DS_Store/
 
 # 이미지
 photo
+
+# ssh 접속 키
+secrets
+
+# mac파일 지우기
+.DS_Store
