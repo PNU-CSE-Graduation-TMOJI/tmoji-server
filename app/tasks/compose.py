@@ -205,8 +205,9 @@ async def compose_image_ai_mode(db: AsyncSession, service: ServiceRead) -> None:
             client.close()
 
     # Paramiko는 블로킹[동기]이므로 따로 스레드로 빼서, 현재거 안막히게 해줬으나, 어짜피 selary에 들어가 있는거라면 상관없을 것 같아서 동기 그대로 실행
+    # 동훈) 맞아유, 여긴 샐러리 태스크 안에 있기 때문에, 현재 태스크 자체가 메인(fastAPI) 프로세스랑 따로 분리되어서 실행중인 프로세스임니다
     # local_result_path = await asyncio.to_thread(_do_ssh_roundtrip)
-    local_result_path = _do_ssh_roundtrip
+    local_result_path = _do_ssh_roundtrip()
 
     # 5) compose 스토리지에 저장 + DB 업데이트
     result_img = Image.open(local_result_path)
