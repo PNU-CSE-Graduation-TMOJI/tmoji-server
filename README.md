@@ -18,7 +18,7 @@
 - 구글 클라우드에서 받은 인증 키를 아래 경로에 배치
   - `@/credentials/your-gcloud-key.json`
 
-### aws credentilas (로컬에서 s3 접근 시 필요)
+### AWS credentilas (로컬에서 s3 접근 시 필요)
 
 PowerShell에서 한 번만 설정:
 
@@ -53,4 +53,12 @@ CELERY_BROKER_BACKEND=redis://redis:6379/1 # 보안상 위험, 변경 예정
 
 GOOGLE_APPLICATION_CREDENTIALS=/code/credentials/your-gcloud-key.json
 # 꼭 `/code/ 접두사를 붙여야 함 (Docker 경로)
+```
+
+## 도커 가동
+
+### Local
+
+```bash
+docker-compose -f docker-compose.yml --env-file .env up -d --build
 ```
