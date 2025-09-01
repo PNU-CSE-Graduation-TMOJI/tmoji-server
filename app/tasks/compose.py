@@ -23,6 +23,7 @@ import json
 import shlex
 import tempfile
 from dataclasses import dataclass
+import secrets  # NEW
 
 import paramiko
 from PIL import Image
@@ -43,6 +44,10 @@ class SSHConfig:
     remote_out_dir: str = os.getenv("GPU_REMOTE_OUT")
     # GPU 서버에서 돌아가는 FastAPI의 로컬 주소(원격 호스트 기준)
     fastapi_infer_url: str = os.getenv("GPU_FASTAPI_URL")
+
+    # NEW: 스크립트 경로 & 환경 준비 커맨드
+    remote_script: str = os.getenv("GPU_REMOTE_SCRIPT")
+    remote_preamble: str = os.getenv("GPU_REMOTE_PREAMBLE")
 
 CFG = SSHConfig()
 
@@ -134,11 +139,6 @@ async def compose_image_machine_mode(db: AsyncSession, service: ServiceRead) -> 
   await update_service(db, service.id, service_in=service_in)
 
 
-
-# async def compose_image_ai_mode(db: AsyncSession, service: ServiceRead) -> None:
-#   # FIXME 학습된 AI 모델과 연결해야함!!
-#   await compose_image_machine_mode(db, service)
-
 ##### --------- SSH --------- #####
 async def compose_image_ai_mode(db: AsyncSession, service: ServiceRead) -> None:
     """
@@ -152,65 +152,84 @@ async def compose_image_ai_mode(db: AsyncSession, service: ServiceRead) -> None:
     if not origin_image:
         raise Exception("id와 일치하는 image를 찾을 수 없습니다.")
 
-    # 1) 원본 이미지를 임시 파일로 저장
+    # 1-1) 원본 이미지를 임시 파일로 저장
     pil_img = storage.load_image(origin_image.filename, "upload")
     if pil_img.mode != "RGBA":
         pil_img = pil_img.convert("RGBA")
 
-    job_id = f"svc{service.id}_{int(time.time())}"
+    # 1-2) 작업들 이름 충돌 방지용으로 랜덤 한스푼
+    job_id = f"svc{service.id}_{int(time.time())}_{secrets.token_hex(4)}"
     local_in = os.path.join(tempfile.gettempdir(), f"{job_id}_in.png")
-    local_out = os.path.join(tempfile.gettempdir(), f"{job_id}_out.png")
     pil_img.save(local_in, format="PNG")
 
-    remote_in = f"{CFG.remote_in_dir}/{job_id}.png"
-    remote_out = f"{CFG.remote_out_dir}/{job_id}.png"
+    # 2-1) 원격 작업 전용 경로 세팅(지금 gpu서버엔 ssh_input, ssh_output으로 되어있음)
+    remote_job_dir = f"{CFG.remote_in_dir}/{job_id}"
+    remote_in = f"{remote_job_dir}/input.png"
+    remote_job_json = f"{remote_job_dir}/job.json"
+    remote_out_root = CFG.remote_out_dir  # 결과 루트 (스크립트가 out_root/<job_id>/... 생성)
+    remote_script = "/home/undergrad/model_base/TextCtrl-Translate/infer.sh"
 
-    def _do_ssh_roundtrip() -> str:
-        client = _open_ssh_client(CFG)
-        sftp = None
-        try:
-            sftp = client.open_sftp()
-            # 원격 디렉토리 준비
-            _sftp_mkdir_p(sftp, CFG.remote_in_dir)
-            _sftp_mkdir_p(sftp, CFG.remote_out_dir)
+    # 2-2) DB의 areas도 세팅
+    areas = await read_areas_bulk_by_service_id(db, service.id)
 
-            # 2) 업로드
-            sftp.put(local_in, remote_in)
+    # 2-3) 데이터 종합한 meta만들고, 보낼 준비 끗
+    job_meta = {
+        "job_id": job_id,
+        "input_path": remote_in,
+        "out_root": remote_out_root,
+        "naming": {"digits": 5, "start": 0},
+        "areas": [
+            {
+                "bbox": [a.x1, a.y1, a.x2, a.y2],
+                # 예시 규칙: i_s.txt = source_text(원문), i_t.txt = target_text(번역)
+                "source_text": (getattr(a, "text", None) or getattr(a, "origin_text", None) or ""),
+                "target_text": (a.translated_text or ""),
+            }
+            for a in areas
+        ],
+    }
+    job_meta_str = json.dumps(job_meta, ensure_ascii=False)
 
-            # 3) 원격 FastAPI 호출(원격 호스트에서 로컬루프백으로 접근)
-            payload = json.dumps({"input_path": remote_in, "output_path": remote_out})
-            # shell 주입 방지용으로 URL만 shlex.quote, 데이터는 -d '@-' 로 stdin 전달
-            curl_cmd = (
-                f"curl -sS -X POST {shlex.quote(CFG.fastapi_infer_url)} "
-                f"-H 'Content-Type: application/json' "
-                f"--data-binary @- <<'EOF'\n{payload}\nEOF"
-            )
-            # 현재는 gpu server에게서 ok sign이 10분이상 안오면 만료인 코드임
-            stdin, stdout, stderr = client.exec_command(curl_cmd, timeout=600) 
-            rc = stdout.channel.recv_exit_status()
-            if rc != 0:
-                err = stderr.read().decode("utf-8", "ignore")
-                out = stdout.read().decode("utf-8", "ignore")
-                raise RuntimeError(f"Remote inference failed (rc={rc}). stderr={err} stdout={out}")
+    # 3) ssh통신 함수 
+    def _do_ssh_roundtrip() -> dict:
+      client = _open_ssh_client(CFG)
+      sftp = client.open_sftp()
+      try:
+          _sftp_mkdir_p(sftp, remote_job_dir)
+          _sftp_mkdir_p(sftp, CFG.remote_out_dir)
+          sftp.put(local_in, remote_in)
+          with sftp.open(remote_job_json, "w", bufsize=32768) as f:
+              f.write(job_meta_str)
 
-            # 4) 다운로드
-            sftp.get(remote_out, local_out)
-            return local_out
-        finally:
-            try:
-                if sftp:
-                    sftp.close()
-            except Exception:
-                pass
-            client.close()
+          base_cmd = f"{shlex.quote(remote_script)} --job {shlex.quote(remote_job_json)}"
+          gpu_sel  = "CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=7"  # <- 원하는 GPU 선택, 현재는 7번으로 해놓음
+          full_cmd = f"{gpu_sel} {base_cmd}"
+          cmd = f"bash -lc {shlex.quote(full_cmd)}"
+
+          stdin, stdout, stderr = client.exec_command(cmd, timeout=3600, get_pty=True)
+          out_txt = stdout.read().decode("utf-8", "ignore")
+          err_txt = stderr.read().decode("utf-8", "ignore")
+          rc = stdout.channel.recv_exit_status()
+          if rc != 0:
+              raise RuntimeError(f"Remote failed (rc={rc})\nSTDOUT:\n{out_txt}\nSTDERR:\n{err_txt}")
+
+          # 결과물 다운로드
+          remote_composed = f"{remote_out_root}/{job_id}/all_result/composed.png"
+          local_composed  = os.path.join(tempfile.gettempdir(), f"{job_id}_composed.png")
+          sftp.get(remote_composed, local_composed)
+
+          return local_composed
+      finally:
+          try: sftp.close()
+          except: pass
+          client.close()
 
     # Paramiko는 블로킹[동기]이므로 따로 스레드로 빼서, 현재거 안막히게 해줬으나, 어짜피 selary에 들어가 있는거라면 상관없을 것 같아서 동기 그대로 실행
     # 동훈) 맞아유, 여긴 샐러리 태스크 안에 있기 때문에, 현재 태스크 자체가 메인(fastAPI) 프로세스랑 따로 분리되어서 실행중인 프로세스임니다
-    # local_result_path = await asyncio.to_thread(_do_ssh_roundtrip)
-    local_result_path = _do_ssh_roundtrip()
+    local_composed = _do_ssh_roundtrip()
 
-    # 5) compose 스토리지에 저장 + DB 업데이트
-    result_img = Image.open(local_result_path)
+    # 4) compose 스토리지에 저장 + DB 업데이트
+    result_img = Image.open(local_composed)
     composed_filename = f"composed_{origin_image.filename}"
     storage.save_png(result_img, composed_filename, target="compose")
 
