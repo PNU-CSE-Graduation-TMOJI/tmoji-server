@@ -4,6 +4,7 @@ from typing import List
 from app.models.enums.service import Language, ServiceMode, ServiceStatus, ServiceStep
 from app.schemas.area import AreaReadAfterDetecting, AreaReadAfterTranslating
 from app.schemas.base import CommonModel
+from app.schemas.image import ImageRead
 
 class ServiceBase(CommonModel):
   pass
@@ -58,3 +59,7 @@ class GetServiceComposingStatusResponse(ServiceBase):
   id: int
   status: ServiceStatus
   composed_image_filename: str | None
+
+class ServiceDetail(ServiceRead):
+  origin_image: ImageRead
+  composed_image: ImageRead | None

@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.routers import api_router
 
+from app.constants.client_url import CLIENT_URL
 from app.load_env import load_environment
 
 load_environment()
@@ -20,6 +22,18 @@ app = FastAPI(
     description="API for Tmoji Web",
     version="0.1.0",
     lifespan=lifespan
+)
+
+origins = [
+    CLIENT_URL
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(api_router, prefix="/api/v1")
