@@ -15,9 +15,11 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./deploy/nginx/default.prod.conf:/etc/nginx/templates/default.conf.template:ro
       - ./certbot/www:/var/www/certbot:ro
       - ./certbot/conf:/etc/letsencrypt
+    environment:
+      - API_DOMAIN=api.tmoji.org
 
   certbot:
     image: certbot/certbot
