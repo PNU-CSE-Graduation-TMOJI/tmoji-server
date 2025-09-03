@@ -6,7 +6,7 @@ services:
     command: celery -A app.celery_app.celery worker -l info --concurrency=1
 
   reverse-proxy:
-    image: nginx:1.27-alpine
+    image: nginx:stable-alpine
     container_name: nginx_proxy
     restart: always
     depends_on:
