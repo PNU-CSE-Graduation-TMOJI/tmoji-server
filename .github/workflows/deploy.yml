@@ -74,6 +74,8 @@ jobs:
         run: |
           INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
           S3_BUCKET_NAME="${{ secrets.S3_BUCKET_NAME }}"
+          API_DOMAIN="api.tmoji.org"
+
           aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
@@ -86,33 +88,36 @@ jobs:
                 "TMP_DIR=/opt/fastapi-app_tmp",
                 "mkdir -p $APP_DIR $TMP_DIR $APP_DIR/certbot/conf $APP_DIR/certbot/www",
                 "cd $APP_DIR",
-                
+
                 "echo \"[1/8] Download artifact\"",
+                "command -v unzip >/dev/null 2>&1 || sudo yum install -y unzip || sudo apt-get update && sudo apt-get install -y unzip || true",
                 "aws s3 cp s3://'"$S3_BUCKET_NAME"'/latest.zip /tmp/app.zip",
                 "rm -rf $TMP_DIR/*",
                 "unzip -o /tmp/app.zip -d $TMP_DIR",
 
-                "echo \"[2/8] Preserve certbot dirs\"",
-                "[ -d $TMP_DIR/certbot ] && rm -rf $TMP_DIR/certbot || true", 
-
-                "echo \"[3/8] Rsync files\"",
-                "command -v rsync >/dev/null 2>&1 || sudo yum install -y rsync || true",
-                "if command -v rsync >/dev/null 2>&1; then rsync -a --delete $TMP_DIR/ $APP_DIR/; else cp -a $TMP_DIR/. $APP_DIR/; fi",
+                "echo \"[2/8] Preserve certbot dirs (by excluding)\"",
+                "command -v rsync >/dev/null 2>&1 || sudo yum install -y rsync || sudo apt-get install -y rsync -y || true",
+                "if command -v rsync >/dev/null 2>&1; then rsync -a --delete --exclude certbot $TMP_DIR/ $APP_DIR/; else cp -a $TMP_DIR/. $APP_DIR/; fi",
                 "rm -f /tmp/app.zip",
 
-                "echo \"[4/8] Inject env & secrets\"",
+                "echo \"[3/8] Inject env & secrets\"",
+                "command -v jq >/dev/null 2>&1 || sudo yum install -y jq || sudo apt-get install -y jq -y || true",
                 "aws ssm get-parameter --name /fastapi/env_prod --with-decryption --query Parameter.Value --output text > .env",
                 "mkdir -p $APP_DIR/credentials",
-                "aws ssm get-parameter --name /fastapi/gcloud_sa_json --with-decryption --output json | jq -r '.Parameter.Value' > $APP_DIR/credentials/gcloud-sa-key.json",
+                "aws ssm get-parameter --name /fastapi/gcloud_sa_json --with-decryption --output json | jq -r \".Parameter.Value\" > $APP_DIR/credentials/gcloud-sa-key.json",
                 "chmod 600 $APP_DIR/credentials/gcloud-sa-key.json",
                 "chown ec2-user:ec2-user $APP_DIR/credentials/gcloud-sa-key.json",
+
+                "echo \"[4/8] (optional) Render nginx from template \"",
+                "command -v envsubst >/dev/null 2>&1 || sudo yum install -y gettext || sudo apt-get install -y gettext-base -y || true",
+                "[ -f deploy/nginx/default.prod.conf ] && ( export API_DOMAIN='"$API_DOMAIN"'; envsubst '$API_DOMAIN' < deploy/nginx/default.prod.conf > deploy/nginx.conf ) || true",
 
                 "echo \"[5/8] Compose up (build on EC2)\"",
                 "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env down || true",
                 "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env up -d --build",
 
                 "echo \"[6/8] Run migration(if any)\"",
-                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env run --rm migration",
+                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env run --rm migration || true",
 
                 "echo \"[7/8] Nginx config test & reload\"",
                 "docker exec nginx_proxy nginx -t",
