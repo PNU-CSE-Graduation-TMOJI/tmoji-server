@@ -113,11 +113,11 @@ jobs:
                 "[ -f deploy/nginx/default.prod.conf ] && ( export API_DOMAIN='"$API_DOMAIN"'; envsubst '$API_DOMAIN' < deploy/nginx/default.prod.conf > deploy/nginx.conf ) || true",
 
                 "echo \"[5/8] Compose up (build on EC2)\"",
-                "docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env down || true",
-                "docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env up -d --build",
+                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env down || true",
+                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env up -d --build",
 
                 "echo \"[6/8] Run migration(if any)\"",
-                "docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env run --rm migration || true",
+                "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env run --rm migration || true",
 
                 "echo \"[7/8] Nginx config test & reload\"",
                 "docker exec nginx_proxy nginx -t",
