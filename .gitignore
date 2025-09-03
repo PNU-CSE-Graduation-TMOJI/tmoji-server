@@ -7,6 +7,9 @@
 # 보안 키
 /credentials
 
+# SSL
+/certbot
+
 # pycache
 *.pyc
 __pycache__/
