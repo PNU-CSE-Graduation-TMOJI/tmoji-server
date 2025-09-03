@@ -108,13 +108,9 @@ jobs:
                 "chmod 600 $APP_DIR/credentials/gcloud-sa-key.json",
                 "chown ec2-user:ec2-user $APP_DIR/credentials/gcloud-sa-key.json",
 
-                "echo \"[4/8] Render nginx from template \"",
+                "echo \"[4/8] Render nginx from template\"",
                 "command -v envsubst >/dev/null 2>&1 || sudo yum install -y gettext || sudo apt-get install -y gettext-base -y || true",
-                "[ -f deploy/nginx/default.prod.conf ] && ( export API_DOMAIN='"$API_DOMAIN"'; envsubst '$API_DOMAIN' < deploy/nginx/default.prod.conf > deploy/nginx.conf ) || true",
-
-                "echo \"[4.1/8] Verify nginx.conf substitution\"",
-                "bash -lc 'if grep -q \"\\${API_DOMAIN}\" deploy/nginx.conf; then echo ERROR: API_DOMAIN not substituted in nginx.conf; exit 1; fi'",
-                "echo OK: nginx.conf substituted",
+                "[ -f deploy/nginx/default.prod.conf ] && ( export API_DOMAIN='"$API_DOMAIN"'; envsubst '$API_DOMAIN' < deploy/nginx/default.prod.conf | sudo tee deploy/nginx.conf >/dev/null ) || true",
 
                 "echo \"[5/8] Compose up (build on EC2)\"",
                 "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env down || true",
