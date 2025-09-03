@@ -113,7 +113,8 @@ jobs:
                 "[ -f deploy/nginx/default.prod.conf ] && ( export API_DOMAIN='"$API_DOMAIN"'; envsubst '$API_DOMAIN' < deploy/nginx/default.prod.conf > deploy/nginx.conf ) || true",
 
                 "echo \"[4.1/8] Verify nginx.conf substitution\"",
-                "if grep -q '\\${API_DOMAIN}' deploy/nginx.conf; then echo 'ERROR: API_DOMAIN not substituted in nginx.conf'; exit 1; else echo 'OK: nginx.conf substituted'; fi",
+                "if grep -q '${API_DOMAIN}' deploy/nginx.conf; then echo 'ERROR: API_DOMAIN not substituted in nginx.conf'; exit 1; fi",
+                "echo 'OK: nginx.conf substituted'",
 
                 "echo \"[5/8] Compose up (build on EC2)\"",
                 "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env down || true",
