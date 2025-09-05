@@ -10,8 +10,6 @@ load_environment()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # FIXME torch 모델 로딩 여기에
-
     yield  # 여기서 FastAPI 앱이 실행됨
 
     # 앱 종료 시 (필요하면 여기 추가)
