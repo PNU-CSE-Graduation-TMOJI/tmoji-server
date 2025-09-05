@@ -90,7 +90,7 @@ async def get_service_composing_status(service_id: str, db: AsyncSession = Depen
     )
   else:
     return GetServiceComposingStatusResponse(
-      isCompleted=True,
+      isCompleted=False,
       id=service_id_num,
       status=service.status,
       composed_image_filename=None
