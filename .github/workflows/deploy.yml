@@ -126,10 +126,10 @@ jobs:
                 "chmod 600 $APP_DIR/credentials/gcloud-sa-key.json",
                 "chown ec2-user:ec2-user $APP_DIR/credentials/gcloud-sa-key.json",
                 "mkdir -p $APP_DIR/secrets",
-                "aws ssm get-parameter --name /fastapi/gpu_ssh_key --with-decryption --output text | jq -r \".Parameter.Value\" > $APP_DIR/secrets/$GPU_ID",
+                "aws ssm get-parameter --name /fastapi/gpu_ssh_key --with-decryption --query Parameter.Value --output text > $APP_DIR/secrets/$GPU_ID",
                 "chmod 600 $APP_DIR/secrets/$GPU_ID",
                 "chown ec2-user:ec2-user $APP_DIR/secrets/$GPU_ID",
-                "aws ssm get-parameter --name /fastapi/gpu_ssh_pub --with-decryption --output text | jq -r \".Parameter.Value\" > $APP_DIR/secrets/$GPU_ID.pub",
+                "aws ssm get-parameter --name /fastapi/gpu_ssh_pub --with-decryption --query Parameter.Value --output text > $APP_DIR/secrets/$GPU_ID.pub",
                 "chmod 600 $APP_DIR/secrets/$GPU_ID.pub",
                 "chown ec2-user:ec2-user $APP_DIR/secrets/$GPU_ID.pub",
 
