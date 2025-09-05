@@ -19,8 +19,8 @@ def get_service_translating_status_response() -> Dict[int | str, Dict[str, Any]]
                     "y2": 874,
                     "id": 70,
                     "createdAt": "2025-08-06T14:03:57.798231Z",
-                    "serviceId": 10,
-                    "originText": "中島公园"
+                    "originText": "中島公園駅",
+                    "translatedText": "나카지마 공원 역"
                 },
                 {
                     "x1": 137,
@@ -30,7 +30,8 @@ def get_service_translating_status_response() -> Dict[int | str, Dict[str, Any]]
                     "id": 71,
                     "createdAt": "2025-08-06T14:03:57.798231Z",
                     "serviceId": 10,
-                    "originText": "出入口"
+                    "originText": "出入口",
+                    "translatedText": "출입구"
                 },
                 {
                     "x1": 272,
@@ -40,7 +41,8 @@ def get_service_translating_status_response() -> Dict[int | str, Dict[str, Any]]
                     "id": 72,
                     "createdAt": "2025-08-06T14:03:57.798231Z",
                     "serviceId": 10,
-                    "originText": "南北線"
+                    "originText": "南北線",
+                    "translatedText": "남북선"
                 }
             ]
         } 
