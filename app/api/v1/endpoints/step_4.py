@@ -72,11 +72,12 @@ async def get_service_composing_status(service_id: str, db: AsyncSession = Depen
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="존재하지 않는 서비스입니다.")
   if service.step != ServiceStep.COMPOSING:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"COMPOSING 단계가 아닌 서비스입니다.")
-  if not service.composed_image_id:
-    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"완성된 이미지를 찾을 수 없습니다.")
 
   # 2. 서비스 완료 여부 검사 및 반환
   if service.status == ServiceStatus.COMPLETED: # 합성이 완료된 상태
+    if not service.composed_image_id:
+      raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"완성된 이미지를 찾을 수 없습니다.")
+    
     composed_image = await read_image_by_id(db, service.composed_image_id)
     if not composed_image:
       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"완성된 이미지를 찾을 수 없습니다.")
