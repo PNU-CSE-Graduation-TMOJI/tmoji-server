@@ -70,11 +70,29 @@ jobs:
             --value "$GCLOUD_SECRET" \
             --overwrite
 
+      - name: Put gpu secret into SSM Parameter Store
+        env:
+          GPU_SSH_KEY: ${{ secrets.GPU_SSH_KEY }}
+          GPU_SSH_PUB: ${{ secrets.GPU_SSH_PUB }}
+        run: |
+          aws ssm put-parameter \
+            --name "/fastapi/gpu_ssh_key" \
+            --type "SecureString" \
+            --value "$GPU_SSH_KEY" \
+            --overwrite
+
+          aws ssm put-parameter \
+            --name "/fastapi/gpu_ssh_pub" \
+            --type "SecureString" \
+            --value "$GPU_SSH_PUB" \
+            --overwrite
+
       - name: Trigger SSM RunCommand on EC2
         run: |
           INSTANCE_ID="${{ secrets.EC2_INSTANCE_ID }}"
           S3_BUCKET_NAME="${{ secrets.S3_BUCKET_NAME }}"
           API_DOMAIN="api.tmoji.org"
+          GPU_ID="${{ secrets.GPU_ID }}"
 
           aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
@@ -107,6 +125,13 @@ jobs:
                 "aws ssm get-parameter --name /fastapi/gcloud_sa_json --with-decryption --output json | jq -r \".Parameter.Value\" > $APP_DIR/credentials/gcloud-sa-key.json",
                 "chmod 600 $APP_DIR/credentials/gcloud-sa-key.json",
                 "chown ec2-user:ec2-user $APP_DIR/credentials/gcloud-sa-key.json",
+                "mkdir -p $APP_DIR/secrets",
+                "aws ssm get-parameter --name /fastapi/gpu_ssh_key --with-decryption --output text | jq -r \".Parameter.Value\" > $APP_DIR/secrets/$GPU_ID",
+                "chmod 600 $APP_DIR/secrets/$GPU_ID",
+                "chown ec2-user:ec2-user $APP_DIR/secrets/$GPU_ID",
+                "aws ssm get-parameter --name /fastapi/gpu_ssh_pub --with-decryption --output text | jq -r \".Parameter.Value\" > $APP_DIR/secrets/$GPU_ID.pub",
+                "chmod 600 $APP_DIR/secrets/$GPU_ID.pub",
+                "chown ec2-user:ec2-user $APP_DIR/secrets/$GPU_ID.pub",
 
                 "echo \"[4/7] Compose up (build on EC2)\"",
                 "docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env down || true",
