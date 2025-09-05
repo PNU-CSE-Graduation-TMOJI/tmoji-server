@@ -77,6 +77,7 @@ services:
       - db
     volumes:
       - .:/code
+      - ./secrets:/run/secrets:rw        # 키 저장 위치(영구화를 위해 secrests도)
       - type: volume
         source: dummy_venv
         target: /code/.venv
