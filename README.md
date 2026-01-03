@@ -1,3 +1,5 @@
+### 👉(English README)[./README-EN.md]👈
+
 [![banner](/docs/banner.png)](https://tmoji.org)
 
 # TMOJI SERVER (BE)
