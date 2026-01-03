@@ -1,4 +1,4 @@
-### 👉(English README)[./README-EN.md]👈
+### 👉[English README](./README-EN.md)👈
 
 [![banner](/docs/banner.png)](https://tmoji.org)
 
